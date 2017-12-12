@@ -1,0 +1,82 @@
+CRUD operation, using C# is the common program for beginner, intermediate and an expert. During CRUD operation, the programmer is facing different types of errors and it will take lot of time to resolve.
+
+This article shows how to insert, update and delete the records from the database, using C# Server side code. If the progammer has a basic knowledge of C# and Visual Studio, then he will not face any difficulty during the program execution.
+
+Here, I am using SQL database to insert, update and delete operation. Before starting, you should add DLL and afterwards, you should add namespace under it.
+
+Step 1
+
+using System.Data.SqlClient;
+
+You should use namespace given above to connect with SQL database.
+
+Step2
+
+You have to declare connection string outside the class.
+SqlConnection con= new SqlConnection("Data Source=.;Initial Catalog=Sample;Integrated Security=true;");  
+SqlCommand cmd;  
+SqlDataAdapter adapt;  
+//ID variable used in Updating and Deleting Record  
+int ID = 0; 
+Step 3
+
+Insert data in the database, as sgiven below.
+if (txt_Name.Text != "" && txt_State.Text != "") {  
+    cmd = new SqlCommand("insert into tbl_Record(Name,State) values(@name,@state)", con);  
+    con.Open();  
+    cmd.Parameters.AddWithValue("@name", txt_Name.Text);  
+    cmd.Parameters.AddWithValue("@state", txt_State.Text);  
+    cmd.ExecuteNonQuery();  
+    con.Close();  
+    MessageBox.Show("Record Inserted Successfully");  
+    DisplayData();  
+    ClearData();  
+} else {  
+    MessageBox.Show("Please Provide Details!");  
+}  
+Step 4
+
+Updating record is given below.
+if (txt_Name.Text != "" && txt_State.Text != "") {  
+    cmd = new SqlCommand("update tbl_Record set Name=@name,State=@state where ID=@id", con);  
+    con.Open();  
+    cmd.Parameters.AddWithValue("@id", ID);  
+    cmd.Parameters.AddWithValue("@name", txt_Name.Text);  
+    cmd.Parameters.AddWithValue("@state", txt_State.Text);  
+    cmd.ExecuteNonQuery();  
+    MessageBox.Show("Record Updated Successfully");  
+    con.Close();  
+    DisplayData();  
+    ClearData();  
+} else {  
+    MessageBox.Show("Please Select Record to Update");  
+}   
+Step 5
+
+Display record is shown below.
+con.Open();  
+DataTable dt = new DataTable();  
+adapt = new SqlDataAdapter("select * from tbl_Record", con);  
+adapt.Fill(dt);  
+dataGridView1.DataSource = dt;  
+con.Close(); 
+Step 6
+
+Proceed, as shown below to delete the record. 
+if (ID != 0) {  
+    cmd = new SqlCommand("delete tbl_Record where ID=@id", con);  
+    con.Open();  
+    cmd.Parameters.AddWithValue("@id", ID);  
+    cmd.ExecuteNonQuery();  
+    con.Close();  
+    MessageBox.Show("Record Deleted Successfully!");  
+    DisplayData();  
+    ClearData();  
+} else {  
+    MessageBox.Show("Please Select Record to Delete");  
+}  
+}  
+At last, I have called clear method to clear all the textboxes.
+txt_Name.Text = "";  
+txt_State.Text = "";  
+ID = 0; 

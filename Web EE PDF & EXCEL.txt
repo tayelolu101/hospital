@@ -1,0 +1,37 @@
+PDF:
+
+response.setContentType("application/pdf");
+File f = new File(filename);    
+InputStream in = new FileInputStream(f); 
+
+ServletOutputStream outs = response.getOutputStream(); 
+int bit = 256;
+int i = 0;
+try{  
+while ((bit) >= 0) {
+ bit = in.read();  
+ outs.write(bit);
+}
+outs.flush();     
+outs.close();
+in.close();
+return;
+} catch (IOException ioe) {  
+ioe.printStackTrace(System.out); 
+}    
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+EXCEL:
+
+
+ByteArrayOutputStream outByteStream = new ByteArrayOutputStream();
+        workbook.write(outByteStream);
+        byte [] outArray = outByteStream.toByteArray();
+        response.setContentType("application/ms-excel");
+        response.setContentLength(outArray.length);
+        response.setHeader("Expires:", "0"); // eliminates browser caching
+        response.setHeader("Content-Disposition", "attachment; filename=" +filename );
+        OutputStream outStream = response.getOutputStream();
+        outStream.write(outArray);
+        outStream.flush();
+        workbook.close();   

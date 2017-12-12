@@ -1,0 +1,131 @@
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.sql.*;
+import java.util.Properties;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+
+public class NibssClientPost {
+
+
+	public static void main(String[] args) {
+
+	  try {
+
+                 String NAME = "";
+                 String PHONE = "";
+                 String REF_ID = "";
+                 double AMOUNT = "";
+                 boolean notify = true;
+
+
+                  Properties prop = new Properties();
+                  prop.load(new FileInputStream("C:\\Users\\appdev2\\Documents\\nbProjects\\NibssMerchant\\NotifyProperty.properties"));
+                  
+                  String urls = prop.getProperty("url");
+                  String server = prop.getProperty("serv_name");
+                  Class.forName(server);
+                  connection = DriverManager.getConnection(urls);
+                  
+                    String insertSqls = "SELECT  MerchantName, MerchantPhoneNumber, ReferenceCode, Amount FROM Zib_Mcash_merchant_notification WHERE NotifyMerchant = 0";
+                    
+                    
+                    PreparedStatement prep = connection.prepareCall(insertSqls);
+                    ResultSet rs = prep.executeQuery;
+
+                      while (rs.next()) {
+
+                              NAME = rs.getString("MerchantName");
+                              PHONE = rs.getString("MerchantPhoneNumber");
+                              REF_ID = rs.getString("ReferenceCode");
+                              AMOUNT = rs.getDouble(" Amount");
+                         
+
+		URL urll = new URL("http://apis.univasa.com/recharge/fundWallet_test.php?name="+NAME+"&phone="+PHONE+"&refid="+REF_ID+"&amount="+AMOUNT+"&key=3QFpeB1VAE");
+		HttpURLConnection conn = (HttpURLConnection) urll.openConnection();
+		conn.setDoOutput(true);
+		conn.setRequestMethod("POST");
+		conn.setRequestProperty("Content-Type", "application/xml");
+
+		String input = "<MerchantName>"+NAME+"</MerchantName>\n" +
+                               "<MerchantPhoneNumber>"+PHONE+"</MerchantPhoneNumber>\n" +
+                               "<ReferenceCode>"+REF_ID+"</ReferenceCode>\n" +
+                               "<Amount>"+AMOUNT+"</Amount>";
+                                                    
+		OutputStream os = conn.getOutputStream();
+		os.write(input.getBytes());
+		os.flush();
+
+		if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+			throw new RuntimeException("Failed : HTTP error code : "
+				+ conn.getResponseCode());
+		}else{
+                  
+                     
+                //              DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+                //              Date dated = new Date();
+                //              String notifyDated = dateFormat.format(dated);
+                
+                //     String sql = "UPDATE Zib_Mcash_merchant_notification SET NotifyMerchant=?, NotifyMerchatDt=? WHERE ResponseCode=?";
+                //     PreparedStatement prep = connection.prepareCall(sql);
+                //     prep.setBoolean(1, Boolean.valueOf(notify));
+                //     prep.setString(2, notifyDated);
+                //     prep.setString(3, REF_ID);
+
+                //     prep.executeUpdate();
+                }
+
+		BufferedReader br = new BufferedReader(new InputStreamReader(
+				(conn.getInputStream())));
+
+		String output;
+		System.out.println("Output from Server .... \n");
+		while ((output = br.readLine()) != null) {
+			System.out.println(output);
+		}
+
+             }
+
+		conn.disconnect();
+
+	  } catch (MalformedURLException e) {
+
+		e.printStackTrace();
+
+	  } catch (IOException e) {
+
+		e.printStackTrace();
+
+	 }  catch (SQLException ex) {
+
+                ex.printStackTrace();
+
+        } catch (ClassNotFoundException ex) {
+
+                ex.printStackTrace();
+
+        } finally {
+
+            if (connection != null) {
+
+                try {
+
+                    connection.close();
+
+                } catch (SQLException ex) {
+
+                    ex.printStackTrace();
+                }
+            }
+        }
+
+     }
+
+   }

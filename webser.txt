@@ -1,0 +1,159 @@
+   /**
+     * Retrieves representation of an instance of MerchantInfo.Merchantinfo
+     * @return an instance of java.lang.String
+     */
+//    @GET
+//    //@Path("{MerchantPhoneNumber}")
+//    @Produces(MediaType.APPLICATION_XML)
+//    public String getMerchant(@PathParam("MerchantPhoneNumber") String MerchantPhoneNumber) {
+////       String merchant = null;
+////      try{   
+//             String dbName = "NIP";
+//             String hostName = "jdbc:sqlserver://172.29.4.11:58604;"+dbName; 
+//             String user = "zencore_user";
+//             String password = "pass_zencore";
+//             String url = String.format(hostName, user, password);
+//             Connection connection = null;
+//        
+//             
+//                 Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+//                 connection = DriverManager.getConnection(url);
+//                 
+//                 String query =  "SELECT * from Zib_Mcash_merchant_notification where MerchantPhoneNumber=? ";
+//                  
+//                 PreparedStatement stm = connection.prepareStatement(query);
+//                 stm.setString(1, MerchantPhoneNumber);
+//                 
+//                 ResultSet table = stm.executeQuery();
+//                 while(table.next()){
+
+               Writing an XML file
+//
+//		DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+//		DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+//
+//		
+//		Document doc = docBuilder.newDocument();
+//		Element rootElement = doc.createElement("PaymentNotification");
+//		doc.appendChild(rootElement);
+//		
+//		Element SessionId = doc.createElement("SessionID");
+//		SessionId .appendChild(doc.createTextNode(table.getString(1)));
+//		rootElement.appendChild(SessionId );
+//		
+//		Element RequestorId  = doc.createElement("RequestorID");
+//		RequestorId.appendChild(doc.createTextNode(table.getString(2)));
+//		rootElement.appendChild(RequestorId);
+//                
+//              Element payerPhoneNumber = doc.createElement("PayerPhoneNumber");
+//		payerPhoneNumber.appendChild(doc.createTextNode(table.getString(3)));
+//		rootElement.appendChild(payerPhoneNumber);
+//		
+//		Element payername = doc.createElement("PayerName");
+//		payername.appendChild(doc.createTextNode(table.getString(4)));
+//		rootElement.appendChild(payername);
+//		
+//		Element merchantcode = doc.createElement("MerchantCode");
+//		merchantcode.appendChild(doc.createTextNode(table.getString(5)));
+//		rootElement.appendChild(merchantcode);
+//                
+//              Element merchantname = doc.createElement("MerchantName");
+//		merchantname.appendChild(doc.createTextNode(table.getString(6)));
+//		rootElement.appendChild(merchantname);
+
+//              Element MerchantPhoneNumber = doc.createElement("MerchantPhoneNumber");
+//		MerchantPhoneNumber.appendChild(doc.createTextNode(table.getString(7)));
+//		rootElement.appendChild(merchantname);
+
+//                
+//              Element ReferenceCode = doc.createElement("ReferenceCode");
+//		ReferenceCode.appendChild(doc.createTextNode(table.getString(8));
+//		rootElement.appendChild(ReferenceCode);
+//                
+//              Element Amount = doc.createElement("Amount");
+//		Amount.appendChild(doc.createTextNode(table.getDouble(9)));
+//		rootElement.appendChild(Amount);
+//                
+//              Element TransactionDate = doc.createElement("TransactionDate");
+//		TransactionDate.appendChild(doc.createTextNode(table.getDate(10))));
+//		rootElement.appendChild(TransactionDate);
+//                
+//              Element ResponseCode = doc.createElement("ResponseCode");
+//		ResponseCode.appendChild(doc.createTextNode(table.getString(11));
+//		rootElement.appendChild(ResponseCode);
+//               
+//              DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+//              Calendar cal = Calendar.getInstance();               
+//              Element NotificationDate = doc.createElement("NotificationDate");
+//		NotificationDate.appendChild(doc.createTextNode(dateFormat.format(cal););
+//		rootElement.appendChild(NotificationDate);
+//
+//		// write the content into xml file
+//		TransformerFactory transformerFactory = TransformerFactory.newInstance();
+//		Transformer transformer = transformerFactory.newTransformer();
+//		DOMSource source = new DOMSource(doc);
+//		StreamResult result = new StreamResult(new File("C:\\Merchant.xml"));
+//
+//		// Output to console for testing
+//		// StreamResult result = new StreamResult(System.out);
+//
+//		transformer.transform(source, result);
+//
+                     
+//                    merchant = "<PaymentNotification>\n" +
+//                                           "<SessionID>"+table.getString(1)+"</SessionID>\n" +
+//                                           "<RequestorID>"+table.getString(2)+"</RequestorID>\n" +
+//                                           "<PayerPhoneNumber>"+table.getString(3)+"</PayerPhoneNumber>\n" +
+//                                           "<PayerName>"+table.getString(4)+"</PayerName>\n" +
+//                                           "<MerchantCode>"+table.getString(5)+"</MerchantCode>\n" +
+//                                           "<MerchantName"+table.getString(6)+"</MerchantName>\n" +
+//                                           "<MerchantPhoneNumber>"+table.getString(7)+"</MerchantPhoneNumber>\n" +
+//                                           "<ReferenceCode>"+table.getString(8)+"</ReferenceCode>\n" +
+//                                           "<Amount>"+table.getDouble(9)+"</Amount>\n" +
+//                                           "<TransactionDate>"+table.getDate(10)+"</TransactionDate>\n" +
+//                                           "<ResponseCode>"+table.getString(11)+"</ResponseCode>\n" +
+//                                 "</PaymentNotification>";
+//                    
+//                    
+//         //        }
+//    //  }catch(Exception es){
+//     //     es.printStackTrace();
+//    //  }
+//         
+//		 return merchant;
+//    }
+
+
+
+
+
+//Reading through the XML generated from the Encrypted string.
+                DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                Document doc = dBuilder.parse(new InputSource(new ByteArrayInputStream(content.getBytes("utf-8"))));
+
+                doc.getDocumentElement().normalize();
+                NodeList nList = doc.getElementsByTagName("PaymentNotification");
+
+                for (int temp = 0; temp < nList.getLength(); temp++) {
+
+                    Node nNode = nList.item(temp);
+
+                    if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+
+                        Element eElement = (Element) nNode;
+                        
+                        //Assigning each node element as the object property.
+                        info.setSessionID(eElement.getElementsByTagName("SessionID").item(0).getTextContent());
+                        info.setRequestorID(eElement.getElementsByTagName("RequestorID").item(0).getTextContent());
+                        info.setPayerPhoneNumber(eElement.getElementsByTagName("PayerPhoneNumber").item(0).getTextContent());
+                        info.setPayerName(eElement.getElementsByTagName("PayerName").item(0).getTextContent());
+                        info.setMerchantCode(eElement.getElementsByTagName("MerchantCode").item(0).getTextContent());
+                        info.setMerchantName(eElement.getElementsByTagName("MerchantName").item(0).getTextContent());
+                        info.setMerchantPhoneNumber(eElement.getElementsByTagName("MerchantPhoneNumber").item(0).getTextContent());
+                        info.setReferenceCode(eElement.getElementsByTagName("ReferenceCode").item(0).getTextContent());
+                        info.setAmount(Double.parseDouble(eElement.getElementsByTagName("Amount").item(0).getTextContent()));
+                        info.setTransactionDate(eElement.getElementsByTagName("TransactionDate").item(0).getTextContent());
+                        info.setResponseCode(eElement.getElementsByTagName("ResponseCode").item(0).getTextContent());
+
+                    }
+                    

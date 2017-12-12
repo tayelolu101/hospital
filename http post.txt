@@ -1,0 +1,46 @@
+public String post(String url, String body) throws Exception {
+        TrustManager[] trustManager = new TrustManager[]{new TrustEverythingTrustManager()};
+        String result = null;
+//        Gson gson = new Gson();
+        InputStream ins = null;
+        OutputStream outputStream = null;
+
+        try {
+
+//             System.setProperty("https.proxySet", "true");           
+//             System.setProperty("http.proxyHost","172.29.90.16");
+//             System.setProperty("http.proxyPort","82");
+            URL u = new URL(url);
+            System.out.println("Posting to " + url);
+            System.out.println(body);
+
+            // Let us create the factory where we can set some parameters for the connection                                                            
+            SSLContext sslContext = null;
+            sslContext = SSLContext.getInstance("SSL");
+            sslContext.init(null, trustManager, new java.security.SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+
+//            Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("172.29.90.16", 82));
+            HttpsURLConnection conn = (HttpsURLConnection) u.openConnection();
+            conn.setHostnameVerifier(new VerifyEverythingHostnameVerifier());
+//            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+//            System.out.println("using proxy : " + conn.usingProxy());
+            //write
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+            outputStream = conn.getOutputStream();
+
+            IOUtils.write(body, outputStream);
+
+            ins = conn.getInputStream();
+            // Output the response
+            result = IOUtils.toString(ins);
+            System.out.println("resp : " + result);
+        } finally {
+            IOUtils.closeQuietly(ins);
+            IOUtils.closeQuietly(outputStream);
+        }
+
+        return result;
+    }

@@ -1,0 +1,35 @@
+HTML:
+
+<script language="JavaScript">
+function toggle(source) {
+  checkboxes = document.getElementsByName('foo');
+  for(var checkbox in checkboxes)
+    checkbox.checked = source.checked;
+}
+</script>
+
+<input type="checkbox" onClick="toggle(this)" /> Toggle All<br/>
+
+<input type="checkbox" name="foo" value="bar1"> Bar 1<br/>
+<input type="checkbox" name="foo" value="bar2"> Bar 2<br/>
+<input type="checkbox" name="foo" value="bar3"> Bar 3<br/>
+<input type="checkbox" name="foo" value="bar4"> Bar 4<br/>
+
+
+
+jQUERY:
+
+
+$('#select_all').click(function(event) {
+  if(this.checked) {
+      // Iterate each checkbox
+      $(':checkbox').each(function() {
+          this.checked = true;
+      });
+  }
+  else {
+    $(':checkbox').each(function() {
+          this.checked = false;
+      });
+  }
+});

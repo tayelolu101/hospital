@@ -1,0 +1,65 @@
+﻿using System;
+using System.Collections.Generic;
+Sending Email (C#)
+
+
+
+using System.Linq;
+using System.Text;
+using System.IO;
+using System.Net.Mail;
+using System.Net.Mime;
+
+namespace SendEmail
+{
+    class Email
+    {
+        public static void Main(string[] args)
+        {
+                   MailMessage m = new MailMessage();
+                   SmtpClient sc = new SmtpClient();         
+            try
+            {
+                m.From = new MailAddress("from@gmail.com", "Display name");
+                m.To.Add(new MailAddress("to@domain.com", "Display name To"));
+                m.CC.Add(new MailAddress("CC@yahoo.com", "Display name CC"));
+                //similarly BCC
+                m.Subject = "Test1";    m.IsBodyHtml = true;    m.Body = " This is a Test Mail";
+
+                FileStream fs = new FileStream("E:\\TestFolder\\test.pdf", 
+                                   FileMode.Open, FileAccess.Read);
+                Attachment a = new Attachment(fs, "test.pdf", 
+                                   MediaTypeNames.Application.Octet);
+                m.Attachments.Add(a);
+
+
+                string str = "<html><body><h1>Picture</h1><br/><img 
+                                 src=\"cid:image1\"></body></html>";
+                AlternateView av = 
+                             AlternateView.CreateAlternateViewFromString(str, 
+                             null,MediaTypeNames.Text.Html);
+                LinkedResource lr = new LinkedResource("E:\\Photos\\hello.jpg", 
+                             MediaTypeNames.Image.Jpeg);
+                lr.ContentId = "image1";
+                av.LinkedResources.Add(lr);
+                m.AlternateViews.Add(av);
+
+                              
+                sc.Host = "smtp.gmail.com";
+                sc.Port = 587;
+                sc.Credentials = new
+                  System.Net.NetworkCredential(“from@gmail.com","Password");
+                sc.EnableSsl = true;
+                sc.Send(m);
+
+                Console.ReadLine();
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                Console.ReadLine();
+            }
+        }
+    }
+}
