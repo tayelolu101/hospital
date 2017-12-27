@@ -1,0 +1,110 @@
+public class MessageSender 
+{
+	public static void main(String[] args) 
+	{
+		Connection connection = null;
+		try
+		{
+			Context ctx = new InitialContext();
+			
+			ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("tcp://localhost:61616");
+
+			connection = cf.createConnection();
+			
+			Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+			
+			Destination destination = session.createQueue("test.message.queue");
+			
+			MessageProducer messageProducer = session.createProducer(destination);
+						
+			MapMessage message = session.createMapMessage();
+			
+			message.setString("Name", "Tim");
+			message.setString("Role", "Developer");
+			message.setDouble("Salary", 850000);
+			
+			messageProducer.send(message);
+		
+		}
+		catch (Exception e)
+		{
+			System.out.println(e);
+		}
+		finally
+		{
+			if (connection != null)
+			{
+				try
+				{
+					connection.close();
+				}
+				catch (JMSException e)
+				{
+					System.out.println(e);
+				}
+			}
+			System.exit(0);
+		}
+		
+	
+	}
+}
+
+
+Message Receiver
+Message Receiver object is created by a session and used for receiving messages from a queue. It implements the MessageProducer interface. Please see the code snippet for message receiver. The process remains same in message sender and receiver. In case of receiver, we use a Message Listener.  Listener remains active and gets invoked when the receiver consumes any message from the broker. Please see the code snippets below.
+
+public class MessageReceiver 
+{
+	public static void main(String[] args) 
+	{
+		try
+		{
+			InitialContext ctx = new InitialContext();
+			
+			ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("tcp://localhost:61616");
+
+			Connection connection = cf.createConnection();
+			
+			Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+			
+			Destination destination = session.createQueue("test.prog.queue");
+			
+			MessageConsumer consumer = session.createConsumer(destination);
+			
+			consumer.setMessageListener(new MapMessageListener());
+			connection.start();
+		}
+		catch (Exception e)
+		{
+			System.out.println(e);
+		}
+
+	}
+}
+Please see the code snippet for a message listener receiving map message object.
+
+public class MapMessageListener implements MessageListener 
+{
+	public void onMessage(Message message)
+	{
+		if (message instanceof MapMessage)
+		{
+			MapMessage mapMessage = (MapMessage)message;
+			
+			try
+			{
+				String name = mapMessage.getString("Name");
+				System.out.println("Name : " + name);
+			}
+			catch (JMSException e)
+			{
+				throw new RuntimeException(e);
+			}
+		}
+		else
+		{
+			System.out.println("Invalid Message Received");
+		}
+	}
+}
