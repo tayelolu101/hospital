@@ -108,3 +108,305 @@ public class MapMessageListener implements MessageListener
 		}
 	}
 }
+
+
+
+
+
+
+import javax.jms.Connection;
+04
+import javax.jms.ConnectionFactory;
+05
+import javax.jms.JMSException;
+06
+import javax.jms.Message;
+07
+import javax.jms.MessageProducer;
+08
+import javax.jms.Queue;
+09
+import javax.jms.QueueSession;
+10
+import javax.jms.Session;
+11
+import javax.naming.Context;
+12
+import javax.naming.NamingException;
+13
+ 
+14
+public class HelloWorldProducer {
+15
+    public static void main(String[] args) throws NamingException, JMSException {
+16
+        Connection connection = null;
+17
+        try {
+18
+            System.out.println("Create JNDI Context");
+19
+            Context context = ContextUtil.getInitialContext();
+20
+             
+21
+            System.out.println("Get connection facory");
+22
+            ConnectionFactory connectionFactory = (ConnectionFactory) context
+23
+                    .lookup("ConnectionFactory");
+24
+             
+25
+            System.out.println("Create connection");
+26
+            connection = connectionFactory.createConnection();
+27
+             
+28
+            System.out.println("Create session");
+29
+            Session session = connection.createSession(false,
+30
+                    QueueSession.AUTO_ACKNOWLEDGE);
+31
+             
+32
+            System.out.println("Lookup queue");
+33
+            Queue queue = (Queue) context.lookup("/queue/HelloWorldQueue");
+34
+             
+35
+            System.out.println("Start connection");
+36
+            connection.start();
+37
+             
+38
+            System.out.println("Create producer");
+39
+            MessageProducer producer = session.createProducer(queue);
+40
+             
+41
+            System.out.println("Create hello world message");
+42
+            Message hellowWorldText = session.createTextMessage("Hello World!");
+43
+             
+44
+            System.out.println("Send hello world message");
+45
+            producer.send(hellowWorldText);
+46
+        } finally {
+47
+            if (connection != null) {
+48
+                System.out.println("close the connection");
+49
+                connection.close();
+50
+            }
+51
+ 
+52
+        }
+53
+ 
+54
+    }
+55
+}
+5. JNDI Context
+Since both producer and consumer needs JNDI context, the Context creation is in a common utility class. Here is the code that returns us InitialContext. Notice that java.naming.provider.url is set to localhost:1099 as JBossMessaging is running in local machine at port 1099.
+ContextUtil:
+01
+package com.javacodegeeks.examples;
+02
+ 
+03
+import java.util.Properties;
+04
+ 
+05
+import javax.naming.Context;
+06
+import javax.naming.InitialContext;
+07
+import javax.naming.NamingException;
+08
+ 
+09
+public class ContextUtil {
+10
+    public static Context getInitialContext() throws NamingException {
+11
+        Properties props = new Properties();
+12
+        props.setProperty("java.naming.factory.initial",
+13
+                "org.jnp.interfaces.NamingContextFactory");
+14
+        props.setProperty("java.naming.factory.url.pkgs", "org.jboss.naming");
+15
+        props.setProperty("java.naming.provider.url", "localhost:1099");
+16
+        Context context = new InitialContext(props);
+17
+        return context;
+18
+    }
+19
+}
+Before we start coding our consumer, few important points to note from the HelloWorldProducer class.
+We first need a JNDI context
+Context context = ContextUtil.getInitialContext();
+Using the context we look up for the ConnectionFatory as our goal as a client (producer or consumer) is to first connect to the JMS server.
+ConnectionFactory connectionFactory = (ConnectionFactory) context.lookup("ConnectionFactory")
+We will ask the connectionFactory to create a Connection object.
+We will use the Connection object to create a Session
+In order for the producer to send the message, it needs to know the destination (queue) to which the message should be sent.
+Using our queue name, we will do a lookup on the context to find our Queue
+connection.start() starts the connection. You can imagine this as socket connection from client to server.
+Till this point, even consumer will do exactly same as the producer.
+session.createProducer(queue) creates the producer. Note that the destination is passed as an argument
+Next, we will create a text message session.createTextMessage("Hello World!")
+Finally, we will call producer.send(hellowWorldText); to send the message.
+6. Consumer
+Below is the Consumer
+HelloWorldConsumer:
+01
+package com.javacodegeeks.examples;
+02
+ 
+03
+import javax.jms.Connection;
+04
+import javax.jms.ConnectionFactory;
+05
+import javax.jms.JMSException;
+06
+import javax.jms.Message;
+07
+import javax.jms.MessageConsumer;
+08
+import javax.jms.MessageListener;
+09
+import javax.jms.Queue;
+10
+import javax.jms.QueueSession;
+11
+import javax.jms.Session;
+12
+import javax.jms.TextMessage;
+13
+import javax.naming.Context;
+14
+import javax.naming.NamingException;
+15
+ 
+16
+public class HelloWorldConsumer implements MessageListener {
+17
+    public static void main(String[] args) throws NamingException, JMSException {
+18
+        Connection connection = null;
+19
+        try {
+20
+            System.out.println("Create JNDI Context");
+21
+            Context context = ContextUtil.getInitialContext();
+22
+             
+23
+            System.out.println("Get connection facory");
+24
+            ConnectionFactory connectionFactory = (ConnectionFactory) context
+25
+                    .lookup("ConnectionFactory");
+26
+             
+27
+            System.out.println("Create connection");
+28
+            connection = connectionFactory.createConnection();
+29
+             
+30
+            System.out.println("Create session");
+31
+            Session session = connection.createSession(false,
+32
+                    QueueSession.AUTO_ACKNOWLEDGE);
+33
+             
+34
+            System.out.println("Lookup queue");
+35
+            Queue queue = (Queue) context.lookup("/queue/HelloWorldQueue");
+36
+             
+37
+            System.out.println("Start connection");
+38
+            connection.start();
+39
+             
+40
+            System.out.println("Create consumer");
+41
+            MessageConsumer consumer = session.createConsumer(queue);
+42
+             
+43
+            System.out.println("set message listener");
+44
+            consumer.setMessageListener(new HelloWorldConsumer());         
+45
+        } finally {
+46
+            if (connection != null) {
+47
+                System.out.println("close the connection");
+48
+                connection.close();
+49
+            }
+50
+        }
+51
+    }
+52
+ 
+53
+    @Override
+54
+    public void onMessage(Message message) {
+55
+        try {
+56
+            System.out.println("message received");
+57
+            System.out.println(((TextMessage) message).getText());
+58
+        } catch (JMSException e) {
+59
+            e.printStackTrace();
+60
+        }
+61
+    }
+62
+ 
+63
+}
+Few points to note:
+We call session.createConsumer(queue) to create a MessageConsumer
+Since the message consumer is going to listen for a new message, we will have to set a MessageListener
+Any class which implements MessageListener can act as a listener on the queue for new message
+To keep our example simple, we will make our HelloWorldConsumer implement MessageListener
+The message ‘Hello World!’ is received in onMessage(message) callback wrapped in type TextMessage
+The actual text message ‘Hello World!’ is retrieved by calling getText() on TextMessage
