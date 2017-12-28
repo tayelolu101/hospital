@@ -35,12 +35,26 @@ public class MerchantNotificationJob implements Job{
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
 		// TODO Auto-generated method stub
-		logger.info(dateFormat.format(System.currentTimeMillis()) +" ::  Started Main!!!!");
+		//logger.info(dateFormat.format(System.currentTimeMillis()) +" ::  Started Main!!!!");
         MerchantClient merchantClient = new MerchantClient();
         Connection connection = null;
         Properties prop = new Properties();
-        InputStream inputStream = merchantClient.getClass()
-		.getClassLoader().getResourceAsStream("com/zenithbank/merchantclient/ClientProp.properties");
+        String Id;
+        String SessionID;
+        String RequestorID;
+        String PayerPhoneNumber;
+        String PayerName;
+        String MerchantCode;
+        String MerchantName;
+        String MerchantPhoneNumber;
+        String ReferenceCode;
+        Double Amount;
+        String API_HTTP_Method;
+        String API_URL;
+        String API_UserId;
+        String API_Password;
+        String API_Key;
+        InputStream inputStream = merchantClient.getClass().getClassLoader().getResourceAsStream("com/zenithbank/merchantclient/ClientProp.properties");
 
         try {
 			prop.load(inputStream);
@@ -54,21 +68,7 @@ public class MerchantNotificationJob implements Job{
         try {
 
             // Properties prop = merchantClient.getProp();
-            String Id;
-            String SessionID;
-            String RequestorID;
-            String PayerPhoneNumber;
-            String PayerName;
-            String MerchantCode;
-            String MerchantName;
-            String MerchantPhoneNumber;
-            String ReferenceCode;
-            Double Amount;
-            String API_HTTP_Method;
-            String API_URL;
-            String API_UserId;
-            String API_Password;
-            String API_Key;
+       
 
             String urls = propFile.getUrl();
             String server = propFile.getServer();
@@ -147,64 +147,68 @@ public class MerchantNotificationJob implements Job{
 
                 if (API_HTTP_Method.equalsIgnoreCase("QueryString")) {
 
-                    int length = API_URL.indexOf("?");
-                    String Api = API_URL.substring(0, length);
-                    System.out.println(Api);
-                    System.out.println(API_URL);
+                        int length = API_URL.indexOf("?");
+                        String Api = API_URL.substring(0, length);
+                        System.out.println("API ::::::  " + Api);
+                        System.out.println("API_URL ::::::: " + API_URL);
 
-                    HttpClient client = new HttpClient();
-                    HttpMethod method = new PostMethod(API_URL);
-                    method.setDoAuthentication(true);
-                    HostConfiguration hostConfig = client.getHostConfiguration();
-                    hostConfig.setHost(host);
-                    hostConfig.setProxy(proxy, port);
-                    //   NTCredentials proxyCredentials = new NTCredentials(userName, password, host, domain);
-                    client.getState().setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userName, password));
-                    // send the transaction
-                    client.executeMethod(hostConfig, method);
-                    StatusLine status = method.getStatusLine();
+                        HttpClient client = new HttpClient();
+                        HttpMethod method = new PostMethod(API_URL);
+                        method.setDoAuthentication(true);
+                        HostConfiguration hostConfig = client.getHostConfiguration();
+                       // hostConfig.setHost(host);
+                      //  hostConfig.setProxy(proxy, port);
+                        //   NTCredentials proxyCredentials = new NTCredentials(userName, password, host, domain);
+                        client.getState().setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userName, password));
+                        // send the transaction
+                        client.executeMethod(hostConfig, method);
+                        StatusLine status = method.getStatusLine();
 
-                    if (status != null && method.getStatusCode() == 200) {  //success
+                        if (status != null && method.getStatusCode() == 200) {  //successful post call
 
-                        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-                        Date dated = new Date();
-                        String notifyDated = dateFormat.format(dated);
+                            DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+                            Date dated = new Date();
+                            String notifyDated = dateFormat.format(dated);
 
-                        String query = "UPDATE zib_mcash_merchant_notification SET NotifyMerchant = 1, NotifyMerchatDt = ? WHERE Id = ?";
-                        PreparedStatement preps = connection.prepareCall(query);
-                        preps.setString(1, notifyDated);
-                        preps.setString(2, Id);
-                        preps.executeUpdate();
+                            String query = "UPDATE zib_mcash_merchant_notification SET NotifyMerchant = 1, NotifyMerchantDt = ?, ErrorText = ? WHERE Id = ?";
+                            PreparedStatement preps = connection.prepareCall(query);
+                            preps.setString(1, notifyDated);
+                            preps.setString(2, null);
+                            preps.setString(3, Id);
+                            preps.executeUpdate();
 
-                        logger.info("UPDATED");
+                            System.out.println(Id);
+                            System.out.println("RECORD UPDATED");
 
-                        logger.info(method.getResponseBodyAsString() + "\n Status code : " + status);
+                            System.out.println(method.getResponseBodyAsString() + "\n Status code : " + status);
+
+                        } else {
+
+                            System.err.println("Posting Failed : " + method.getStatusCode()+ "\n" + method.getStatusLine());
+
+                            String Error = "Posting to this Merchant failed:\n ERROR :::" + method.getStatusLine();
+                            String equery = "UPDATE zib_mcash_merchant_notification SET ErrorText = ?  WHERE Id = ?";
+                            PreparedStatement preps = connection.prepareCall(equery);
+                            preps.setString(1, Error);
+                            preps.setString(2, Id);
+                            preps.executeUpdate();
+                            System.out.println("ERROR UPDATED");
+                        }
+
+                        method.releaseConnection();
 
                     } else {
 
-                        System.err.println("Posting Failed : " + method.getStatusCode());
+                        System.out.println("API_URL ::: " + API_URL);
 
-                        String Error = "Posting to this Merchant failed:\n " + method.getStatusLine();
-                        String equery = "UPDATE zib_mcash_merchant_notification SET ErrorText = ?  WHERE Id = ?";
-                        PreparedStatement preps = connection.prepareCall(equery);
-                        preps.setString(1, Error);
-                        preps.setString(2, Id);
-                        preps.executeUpdate();
-                    }
-
-                    method.releaseConnection();
-
-                } else {
-
-                    System.out.println(API_URL);
-
-                    NameValuePair[] data = {
+                        NameValuePair[] data = {
                             new NameValuePair("Amount", Amounts),
+                            new NameValuePair("PayerName", PayerName),
                             new NameValuePair("Telephone", PayerPhoneNumber),
                             new NameValuePair("Key", API_Key)};
 
-                     //   String param = "Amount=" + Amounts + "&Telephone=" + PayerPhoneNumber + "& Key=" + API_Key;
-                        /* = "<PaymentNotification>\n"
+                        /* String data = "Amount=" + Amounts + "&Telephone=" + PayerPhoneNumber + "& Key=" + API_Key;
+                         String data  = "<PaymentNotification>\n"
                          + "<PayerName>" + PayerName + "</PayerName>\n"
                          + "<PayerPhoneNumber>" + PayerPhoneNumber + "</PayerPhoneNumber>\n"
                          + "<ReferenceCode>" + ReferenceCode + "</ReferenceCode>\n"
@@ -215,66 +219,68 @@ public class MerchantNotificationJob implements Job{
                          + "<MerchantPhoneNumber>" + MerchantPhoneNumber + "</MerchantPhoneNumber>\n"
                          + "<MerchantCode>" + MerchantCode + "</MerchantCode>"
                          + "</PaymentNotification>";*/
-
                         HttpClient client = new HttpClient();
                         PostMethod method = new PostMethod(API_URL);
                         method.setDoAuthentication(true);
                         HostConfiguration hostConfig = client.getHostConfiguration();
-                        hostConfig.setHost(host);
-                        hostConfig.setProxy(proxy, port);
+                      //  hostConfig.setHost(host);
+                     //   hostConfig.setProxy(proxy, port);
+
                         //   NTCredentials proxyCredentials = new NTCredentials(userName, password, host, domain);
                         client.getState().setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userName, password));
                         method.setRequestHeader("Content-Type", "application/xml");
                         method.setRequestHeader("charset", "UTF-8");
-                      //  method.setRequestBody(param);
+                        //  method.setRequestBody(param);
                         method.setRequestBody(data);
-                    // send the transaction
-                    client.executeMethod(hostConfig, method);
+                       // method.setQueryString(data);
+                        // send the transaction
+                        client.executeMethod(hostConfig, method);
 
-                    StatusLine status = method.getStatusLine();
+                        StatusLine status = method.getStatusLine();
 
-                    if (status != null && method.getStatusCode() == 200) {  //success
+                        if (status != null && method.getStatusCode() == 200) {  //successful post call
 
-                    
-                        Date dated = new Date();
-                        String notifyDated = dateFormat.format(dated);
+                            DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+                            Date dated = new Date();
+                            String notifyDated = dateFormat.format(dated);
 
-                        String query = "UPDATE zib_mcash_merchant_notification SET NotifyMerchant = 1, NotifyMerchatDt = ? WHERE Id = ?";
-                        PreparedStatement preps = connection.prepareCall(query);
-                        preps.setString(1, notifyDated);
-                        preps.setString(2, Id);
-                        preps.executeUpdate();
+                            String query = "UPDATE zib_mcash_merchant_notification SET NotifyMerchant = 1, NotifyMerchantDt = ?, ErrorText = ? WHERE Id = ?";
+                            PreparedStatement preps = connection.prepareCall(query);
+                            preps.setString(1, notifyDated);
+                            preps.setString(2, null);
+                            preps.setString(3, Id);
+                            preps.executeUpdate();
 
-                    	logger.info("UPDATED");
+                           System.out.println("RECORD UPDATED");
 
-                    	logger.info(method.getResponseBodyAsString() + "\n Status code : " + status);
+                            System.out.println(method.getResponseBodyAsString() + "\n Status code : " + status);
 
-                    } else {
+                        } else {
 
-                    	logger.info("Posting Failed : " + method.getStatusCode());
+                            System.err.println("Posting Failed : " + method.getStatusCode() + "\n" + method.getStatusLine());
 
-                        String Error = "Posting to this Merchant failed:\n " + method.getStatusLine();
-                        String equery = "UPDATE zib_mcash_merchant_notification SET ErrorText = ?  WHERE Id = ?";
-                        PreparedStatement preps = connection.prepareCall(equery);
-                        preps.setString(1, Error);
-                        preps.setString(2, Id);
-                        preps.executeUpdate();
-                    }
+                            String Error = "Posting to this Merchant failed:\n ERROR ::: " + method.getStatusLine();
+                            String equery = "UPDATE zib_mcash_merchant_notification SET ErrorText = ?  WHERE Id = ?";
+                            PreparedStatement preps = connection.prepareCall(equery);
+                            preps.setString(1, Error);
+                            preps.setString(2, Id);
+                            preps.executeUpdate();
+                            System.out.println("ERROR UPDATED");
+                        }
 
-                    method.releaseConnection();
-
+                        method.releaseConnection();
                 }
             }
 
         } catch (ClassNotFoundException ex) {
-        	logger.info("ERROR :::::: 1");
+        	logger.info("ClassNotFoundException :::::: 1");
      
         } catch (IOException ex) {
         
-        	logger.info("ERROR :::::: 2");
+        	logger.info("IOException :::::: 2");
         } catch (SQLException ex) {
         
-        	logger.info("ERROR :::::: 3");
+        	logger.info("SQLException :::::: 3");
         } finally {
             if (connection != null) {
                 try {
@@ -284,30 +290,10 @@ public class MerchantNotificationJob implements Job{
                 }
             }
         }
-        logger.info(dateFormat.format(System.currentTimeMillis()) +" :: End Main!!!!");
+        //logger.info(dateFormat.format(System.currentTimeMillis()) +" :: End Main!!!!");
 	}
 	
 	
 	
 
-}
-
-
-
-
-String urlParameters  = "param1=a&param2=b&param3=c";
-byte[] postData       = urlParameters.getBytes( StandardCharsets.UTF_8 );
-int    postDataLength = postData.length;
-String request        = "http://example.com/index.php";
-URL    url            = new URL( request );
-HttpURLConnection conn= (HttpURLConnection) url.openConnection();           
-conn.setDoOutput( true );
-conn.setInstanceFollowRedirects( false );
-conn.setRequestMethod( "POST" );
-conn.setRequestProperty( "Content-Type", "application/x-www-form-urlencoded"); 
-conn.setRequestProperty( "charset", "utf-8");
-conn.setRequestProperty( "Content-Length", Integer.toString( postDataLength ));
-conn.setUseCaches( false );
-try( DataOutputStream wr = new DataOutputStream( conn.getOutputStream())) {
-   wr.write( postData );
 }
