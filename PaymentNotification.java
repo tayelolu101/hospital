@@ -20,43 +20,37 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
-import javax.ws.rs.Path;
 import javax.ws.rs.GET;
+import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+
+
+
 
 /**
  * REST Web Service
  *
  * @author appdev2
  */
+
+
 @Path("MerchantNotification")
-@XmlRootElement
-public class PaymentNotification {
-
-    @Context
-    private UriInfo context;
-
-    private Connection connection = null;
-
-    private String PayerName;
-    private String PayerPhoneNumber;
-    private String ReferenceCode;
-    private Double Amount;
-    private String TransactionDate;
-    private String Result;
-
-    /**
-     * Creates a new instance of paymentNotification
-     */
-    public PaymentNotification() {
-    }
-
-    /**
+@XmlRootElement(name = "Payment")
+public class PaymentNotification{
+    
+    private Connection connection = null;   
+       
+    private String ResponseCode;
+    
+    private List<Result> results; 
+    
+/**
      * Retrieves representation of an instance of
      * PaymentNotification.getNotification
      *
@@ -66,18 +60,18 @@ public class PaymentNotification {
      * @return an instance of java.util.List
      */
     @GET
-    @Produces({"application/xml", "application/json"})
-    public List<PaymentNotification> getNotificationByDate(@QueryParam("merchantId") String MerchantID,
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})//({"application/xml", "application/json"})
+    public PaymentNotification getNotificationByDate(@QueryParam("merchantId") String MerchantID,
             @QueryParam("start") String Startdate,
             @QueryParam("end") String EndDate) {
-
-        PaymentNotification ntm = new PaymentNotification();
-
-        List<PaymentNotification> response = new ArrayList<>();
+        
+        List<Result> res = new ArrayList<>();
+          
+        PaymentNotification  pay = new PaymentNotification();
 
         try {
 
-            DateFormat nowFormat = new SimpleDateFormat("yyMMddHHmmss");
+            DateFormat nowFormat = new SimpleDateFormat("yyMMdd");
             java.util.Date dateTime;
             dateTime = nowFormat.parse(Startdate);
             java.sql.Date start = new java.sql.Date(dateTime.getTime());
@@ -87,6 +81,34 @@ public class PaymentNotification {
 
             System.out.println(start);
             System.out.println(end);
+
+            long Starter = start.getTime();//Converting start date to milliseconds
+            long ended = end.getTime();//Converting start date to milliseconds
+            
+            System.out.println("Starter : " + Starter);
+            System.out.println("Starter : " + ended);
+            
+            //Getting the date range for 3 days
+            long secondsInMilli = 1000;
+            long minutesInMilli = secondsInMilli * 60;
+            long hoursInMilli = minutesInMilli * 60;
+            long daysInMilli = hoursInMilli * 24;
+            long ThreedaysInMilli = daysInMilli * 3;
+            System.out.println("ThreedaysInMilli : " + ThreedaysInMilli);
+            
+            long range = ThreedaysInMilli;// Date range for 3 days in milliseconds
+            
+            if((ended - Starter) > range){ // Condition to check that the period requested is not more than 3 days
+                
+                System.err.println("Requested period more than 3 days"); 
+                
+                pay.setResponseCode("03");
+               // ntm.setResult("Date range is invalid, kindly specify a date range not more than 3 days.");
+
+                //response.add(pay);
+
+                return pay;
+            }
 
             //Accessing the property files for required parameters
             Properties prop = new Properties();
@@ -105,32 +127,48 @@ public class PaymentNotification {
             String Sqls = "select * from zib_mcash_merchant_notification where"
                     + " MerchantCode = " + MerchantID + " "
                     + "and TransactionDate between '" + start + " 00:00:00.000' and '" + end + " 23:59:59.000'";
+            
             System.out.println(Sqls);
+            
+             Logger.getLogger("Sqls: " + Sqls);
 
             //querying the table in the database
             CallableStatement prep = connection.prepareCall(Sqls);
 
             ResultSet rs = prep.executeQuery();
 
-            while (rs.next()) {
-
-                //setting the return values as the object properties
-                ntm.setAmount(rs.getDouble("Amount"));
-                ntm.setPayerPhoneNumber(rs.getString("PayerPhoneNumber"));
-                ntm.setPayerName(rs.getString("PayerName"));
-                ntm.setReferenceCode(rs.getString("ReferenceCode"));
-                ntm.setTransactionDate(rs.getString("TransactionDate"));
-
-                System.out.println(ntm.getAmount());
-                System.out.println(ntm.getPayerName());
-                System.out.println(ntm.getReferenceCode());
-                System.out.println(ntm.getPayerPhoneNumber());
-                System.out.println(ntm.getTransactionDate());
-                System.out.println();
-                //Adding each object to the arraylist collection
-                response.add(ntm);
-
+            if(rs.next()){
+                
+                pay.setResponseCode("00");
+               // System.out.println("i am here");
+               
+                   
             }
+             
+            while (rs.next()) {               
+                  
+               
+               Result result = new Result();
+           
+                //setting the return values as the object properties
+                result.setAmount(rs.getDouble("Amount"));
+                result.setPayerPhoneNumber(rs.getString("PayerPhoneNumber"));
+                result.setPayerName(rs.getString("PayerName"));
+                result.setReferenceCode(rs.getString("ReferenceCode"));
+                result.setTransactionDate(rs.getString("TransactionDate")); 
+                res.add(result);
+             
+
+                System.out.println(result.getAmount());
+                System.out.println(result.getPayerName());
+                System.out.println(result.getReferenceCode());
+                System.out.println(result.getPayerPhoneNumber());
+                System.out.println(result.getTransactionDate());
+                System.out.println();
+              
+                  pay.setResults(res);
+            }
+         
 
         } catch (IOException | ClassNotFoundException | SQLException | ParseException ex) {
 
@@ -152,28 +190,29 @@ public class PaymentNotification {
         }
 
         //returning empty object
-        if (response.isEmpty()) {
+        if (res.isEmpty()) {
+            
+            pay.setResponseCode("02");
+           // ntm.setResult("NO RECORD FOUND FOR MERCHANT WITH CODE : " + MerchantID + ", BETWEEN " + Startdate + " AND " + EndDate + " !");
+                             
+           
 
-            ntm.setResult("NO RECORD FOUND FOR MERCHANT WITH CODE : " + MerchantID + ", BETWEEN :" + Startdate + " AND :" + EndDate + " !");
-
-            System.out.println(ntm.getResult());
-
-            response.add(ntm);
-
-            return response;
+            return pay;
         }
-        //returning the collection of object
-        return response;
+        //returning the collection of object if it is not empty
+        
+       
+        return pay;
     }
 
     @GET
     @Path("{MerchantID}")
-    @Produces({"application/xml", "application/json"})
-    public List<PaymentNotification> getCurrentNotification(@PathParam("MerchantID") String MerchantID) {
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})//({"application/xml", "application/json"})
+    public PaymentNotification getCurrentNotification(@PathParam("MerchantID") String MerchantID) {
 
-        PaymentNotification ntms = new PaymentNotification();
-
-        List<PaymentNotification> responses = new ArrayList<>();
+        PaymentNotification pay = new PaymentNotification();
+             
+        List<Result> responses = new ArrayList<>();
 
         ArrayList<Integer> list = new ArrayList<>();
 
@@ -196,55 +235,64 @@ public class PaymentNotification {
             connection = DriverManager.getConnection(urls);
 
             String Sqls = "select a.Id, a.PayerPhoneNumber, a.PayerName, a.ReferenceCode, a.Amount, a.TransactionDate, b.max_id"
-                    + " from zib_mcash_merchant_notification a, mcash_merchant_pull_maxid b "
+                    + " from zib_mcash_merchant_notification a, zib_mcash_merchant_pull_maxid b "
                     + "where a.MerchantCode = " + MerchantID + ""
                     + " and b.merchant_code = a.MerchantCode"
                     + " and a.Id > b.max_id";
 
             System.out.println(Sqls);
+            
+             Logger.getLogger("Sqls: " + Sqls);
 
             //querying the table in the database
             CallableStatement prep = connection.prepareCall(Sqls);
 
             ResultSet rs = prep.executeQuery();
-
+            
+            if (rs.next()){
+                
+                pay.setResponseCode("00");
+                
+            }
+           
             while (rs.next()) {
 
+                Result result = new Result();
+              
                 //setting the return values as the object properties
-                ntms.setAmount(rs.getDouble("Amount"));
-                ntms.setPayerPhoneNumber(rs.getString("PayerPhoneNumber"));
-                ntms.setPayerName(rs.getString("PayerName"));
-                ntms.setReferenceCode(rs.getString("ReferenceCode"));
-                ntms.setTransactionDate(rs.getString("TransactionDate"));
-
-                System.out.println(ntms.getAmount());
-                System.out.println(ntms.getPayerName());
-                System.out.println(ntms.getReferenceCode());
-                System.out.println(ntms.getPayerPhoneNumber());
-                System.out.println(ntms.getTransactionDate());
+                result.setAmount(rs.getDouble("Amount"));
+                result.setPayerPhoneNumber(rs.getString("PayerPhoneNumber"));
+                result.setPayerName(rs.getString("PayerName"));
+                result.setReferenceCode(rs.getString("ReferenceCode"));
+                result.setTransactionDate(rs.getString("TransactionDate"));
+                responses.add(result);
+            
+                
+                System.out.println(result.getAmount());
+                System.out.println(result.getPayerName());
+                System.out.println(result.getReferenceCode());
+                System.out.println(result.getPayerPhoneNumber());
+                System.out.println(result.getTransactionDate());
                 System.out.println();
 
-                //Adding each object to the arraylist collection
-                responses.add(ntms);
-
+                             
+                pay.setResults(responses);
                 list.add(rs.getInt("Id"));
 
             }
-
+            
             //returning empty object
             if (responses.isEmpty()) {
+                
+                pay.setResponseCode("01");
+                //ntms.setResult("NO NEW RECORD FOUND FOR MERCHANT WITH CODE : " + MerchantID + " !");            
 
-                ntms.setResult("NO NEW RECORD FOUND FOR MERCHANT WITH CODE : " + MerchantID + " !");
 
-                System.out.println(ntms.getResult());
-
-                responses.add(ntms);
-
-                return responses;
+                return pay;
 
             }
 
-            //Looping through the ID value to set max_Id so when next the table is queried later it starts from a higher position 
+            //Looping through the ID value to set max_Id so when next the table is queried it starts from a higher position 
             max = list.get(0);
 
             for (int i : list) {
@@ -256,8 +304,10 @@ public class PaymentNotification {
             }
 
             //Updating the max_Id column
-            String Sqll = "UPDATE mcash_merchant_pull_maxid SET max_id = " + max + " WHERE merchant_code = " + MerchantID;
+            String Sqll = "UPDATE zib_mcash_merchant_pull_maxid SET max_id = " + max + " WHERE merchant_code = " + MerchantID;
             System.out.println(Sqll);
+            
+            Logger.getLogger("Sqll: " + Sqll);
 
             CallableStatement preps = connection.prepareCall(Sqll);
             preps.executeUpdate();
@@ -280,56 +330,26 @@ public class PaymentNotification {
                 }
             }
         }
-        //returning the collection of object
-        return responses;
+        //returning the collection of object if it is not empty
+        return pay;
     }
 
-    public String getPayerName() {
-        return PayerName;
+
+    public List<Result> getResults() {
+        return results;
+    }
+    @XmlElementWrapper
+    @XmlElement(name="result")
+    public void setResults(List<Result> results) {
+        this.results = results;
     }
 
-    public void setPayerName(String PayerName) {
-        this.PayerName = PayerName;
+    public String getResponseCode() {
+        return ResponseCode;
     }
 
-    public String getPayerPhoneNumber() {
-        return PayerPhoneNumber;
-    }
-
-    public void setPayerPhoneNumber(String PayerPhoneNumber) {
-        this.PayerPhoneNumber = PayerPhoneNumber;
-    }
-
-    public String getReferenceCode() {
-        return ReferenceCode;
-    }
-
-    public void setReferenceCode(String ReferenceCode) {
-        this.ReferenceCode = ReferenceCode;
-    }
-
-    public Double getAmount() {
-        return Amount;
-    }
-
-    public void setAmount(Double Amount) {
-        this.Amount = Amount;
-    }
-
-    public String getTransactionDate() {
-        return TransactionDate;
-    }
-
-    public void setTransactionDate(String TransactionDate) {
-        this.TransactionDate = TransactionDate;
-    }
-
-    public String getResult() {
-        return Result;
-    }
-
-    public void setResult(String Result) {
-        this.Result = Result;
+    public void setResponseCode(String ResponseCode) {
+        this.ResponseCode = ResponseCode;
     }
 
 }
