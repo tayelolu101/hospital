@@ -1,0 +1,82 @@
+﻿Method to put file into database from drive:
+
+public static void databaseFilePut(string varFilePath) {
+    byte[] file;
+    using (var stream = new FileStream(varFilePath, FileMode.Open, FileAccess.Read)) {
+        using (var reader = new BinaryReader(stream)) {
+            file = reader.ReadBytes((int) stream.Length);       
+        }          
+    }
+    using (var varConnection = Locale.sqlConnectOneTime(Locale.sqlDataConnectionDetails))
+    using (var sqlWrite = new SqlCommand("INSERT INTO Raporty (RaportPlik) Values(@File)", varConnection)) {
+        sqlWrite.Parameters.Add("@File", SqlDbType.VarBinary, file.Length).Value = file;
+        sqlWrite.ExecuteNonQuery();
+    }
+}
+
+
+This method is to get file from database and save it on drive:
+
+public static void databaseFileRead(string varID, string varPathToNewLocation) {
+    using (var varConnection = Locale.sqlConnectOneTime(Locale.sqlDataConnectionDetails))
+    using (var sqlQuery = new SqlCommand(@"SELECT [RaportPlik] FROM [dbo].[Raporty] WHERE [RaportID] = @varID", varConnection)) {
+        sqlQuery.Parameters.AddWithValue("@varID", varID);
+        using (var sqlQueryResult = sqlQuery.ExecuteReader())
+            if (sqlQueryResult != null) {
+                sqlQueryResult.Read();
+                var blob = new Byte[(sqlQueryResult.GetBytes(0, 0, null, 0, int.MaxValue))];
+                sqlQueryResult.GetBytes(0, 0, blob, 0, blob.Length);
+                using (var fs = new FileStream(varPathToNewLocation, FileMode.Create, FileAccess.Write)) 
+                    fs.Write(blob, 0, blob.Length);
+            }
+    }
+}
+
+
+
+This method is to get file from database and put it as MemoryStream:
+
+public static MemoryStream databaseFileRead(string varID) {
+    MemoryStream memoryStream = new MemoryStream();
+    using (var varConnection = Locale.sqlConnectOneTime(Locale.sqlDataConnectionDetails))
+    using (var sqlQuery = new SqlCommand(@"SELECT [RaportPlik] FROM [dbo].[Raporty] WHERE [RaportID] = @varID", varConnection)) {
+        sqlQuery.Parameters.AddWithValue("@varID", varID);
+        using (var sqlQueryResult = sqlQuery.ExecuteReader())
+            if (sqlQueryResult != null) {
+                sqlQueryResult.Read();
+                var blob = new Byte[(sqlQueryResult.GetBytes(0, 0, null, 0, int.MaxValue))];
+                sqlQueryResult.GetBytes(0, 0, blob, 0, blob.Length);
+                //using (var fs = new MemoryStream(memoryStream, FileMode.Create, FileAccess.Write)) {
+                memoryStream.Write(blob, 0, blob.Length);
+                //}
+            }
+    }
+    return memoryStream;
+}
+
+
+
+This method is to put MemoryStream into database:
+
+public static int databaseFilePut(MemoryStream fileToPut) {
+        int varID = 0;
+        byte[] file = fileToPut.ToArray();
+        const string preparedCommand = @"
+                    INSERT INTO [dbo].[Raporty]
+                               ([RaportPlik])
+                         VALUES
+                               (@File)
+                        SELECT [RaportID] FROM [dbo].[Raporty]
+            WHERE [RaportID] = SCOPE_IDENTITY()
+                    ";
+        using (var varConnection = Locale.sqlConnectOneTime(Locale.sqlDataConnectionDetails))
+        using (var sqlWrite = new SqlCommand(preparedCommand, varConnection)) {
+            sqlWrite.Parameters.Add("@File", SqlDbType.VarBinary, file.Length).Value = file;
+
+            using (var sqlWriteQuery = sqlWrite.ExecuteReader())
+                while (sqlWriteQuery != null && sqlWriteQuery.Read()) {
+                    varID = sqlWriteQuery["RaportID"] is int ? (int) sqlWriteQuery["RaportID"] : 0;
+                }
+        }
+        return varID;
+    }
